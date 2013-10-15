@@ -1,4 +1,5 @@
 <?php
+
 /*
  *  @config
  */
@@ -39,7 +40,7 @@ $errors = array();
  */
 function selec($args) {
     global $pdo;
-    
+
     // table required
     if (isset($args['table'])) {
         $table = $args['table'];
@@ -48,24 +49,24 @@ function selec($args) {
     }
 
     $sql = "SELECT * FROM `$table` WHERE 1=1 ";
-    
+
     // status ?
     if (isset($args['status'])) {
         $status = $args['status'];
         $sql .= " AND status= :status "; // place holder 
     }
-    
-     // user_id ?
+
+    // user_id ?
     if (isset($args['user_id'])) {
         $userId = (int) $args['user_id'];
         $sql .= " AND user_id= :user_id";
     }
-    
+
     $sql.=";";
-    
+
     // SELECT * FROM FROM user WHERE 1=1 AND status= :status AND user_id= :status;
     $stmt = $pdo->prepare($sql); // requête préparée moule retourne un objet de type PDOStatement
-    
+
     if (isset($args['user_id'])) {
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
     }
@@ -73,11 +74,9 @@ function selec($args) {
     if (isset($args['status'])) {
         $stmt->bindValue(':status', $status, PDO::PARAM_STR);
     }
-    
+
     $stmt->execute();  // on execute
     return $stmt;
-    
-    
 }
 
 $errors = array();
@@ -87,29 +86,29 @@ $errors = array();
  */
 function create() {
     global $pdo, $errors;
-    
-     $name = trim($_POST['name']); // plus d'espace avant et après
-     if (empty($name)) {
+
+    $name = trim($_POST['name']); // plus d'espace avant et après
+    if (empty($name)) {
         $errors[] = "Le nom est obligatoire";
         return false;
     }
-    
+
     if (!secur($name)) {
         $errors[] = "Pb dans le nom, ne pas afficher cette erreur sécu";
         return false;
     }
-    
+
     //INSERT INTO user (name, avatar) VALUES ('Antoine', 'no')
     $sql = "
         INSERT 
         INTO `user` (name, avatar, status) 
         VALUES (:name, :avatar, :status);";
-    
+
     $stmt = $pdo->prepare($sql);
     $status = (secur($_POST['status'])) ? $_POST['status'] : '0';
-    $avatar='no';
-    
-     /* ---------- On a passé les tests on continue  --- */
+    $avatar = 'no';
+
+    /* ---------- On a passé les tests on continue  --- */
 
     $stmt->bindValue(':name', $name, PDO::PARAM_STR);
     $stmt->bindValue(':avatar', 'no', PDO::PARAM_STR);
@@ -117,12 +116,46 @@ function create() {
     return $stmt->execute(); // true or false
 }
 
+// function update
 function update() {
-   
+    global $pdo, $errors;
+
+    $name = trim($_POST['name']); // plus d'espace avant et après
+    if (empty($name)) {
+        $errors[] = "Le nom est obligatoire";
+        return false;
+    }
+
+    if (!secur($name)) {
+        $errors[] = "Pb dans le nom, ne pas afficher cette erreur sécu";
+        return false;
+    }
+
+    $status = (secur($_POST['status'])) ? $_POST['status'] : '0';
+    $avatar = 'no';
+    $userId = (int) $_POST['user_id'];
+
+    $sql = "UPDATE `user` 
+            SET name=:name, avatar=:avatar, status=:status  WHERE user_id=:user_id ;";
+
+    $stmt = $pdo->prepare($sql);
+
+    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->bindValue(':name', $name, PDO::PARAM_STR);
+    $stmt->bindValue(':avatar', $avatar, PDO::PARAM_STR);
+    $stmt->bindValue(':status', $status, PDO::PARAM_STR);
+
+    return $stmt->execute(); // true or false
 }
 
-function delete($userId, $life = 'delete') {
-  
+function delete($userId) {
+    global $pdo, $errors;
+
+    $sql = "DELETE FROM `user` WHERE user_id=:user_id ;";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+
+    return $stmt->execute(); // true or false
 }
 
 /*
@@ -142,7 +175,8 @@ function secur($post) {
 /*
  * ----- upload
  */
-function uplaod(){
+
+function uplaod() {
     
 }
 
