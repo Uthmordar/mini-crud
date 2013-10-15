@@ -3,7 +3,8 @@
 require_once 'bootstrap.php';
 // -------- fin bootstrap
 
-$users = selec(array('table' => 'user', 'status' => '1'));
+$users=selec(array('table'=>'user', 'status'=>'1'));  // objet PDOStatement  ->fetch() une ligne de la table
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -38,7 +39,7 @@ $users = selec(array('table' => 'user', 'status' => '1'));
 
                             <td><?php echo ($user['status'] == '1') ? 'ok' : 'supprimer'; ?></td>
                             <td><img src="<?php echo $user['avatar']; ?>" /></td>
-                            <td><?php echo $user['date_crea']; ?></td>
+                            <td><?php // echo $user['date_crea']; ?></td>
                             <td><div class="btn-group">
                                     <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
                                         Action
