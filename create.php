@@ -29,11 +29,11 @@ if (!empty($_POST)) {
             <?php endif; ?> 
 
             <h1><a href="<?php echo getConfig('url'); ?>" ><?php echo getConfig('name') ?></a></h1>
-            <!-- htmlentities secu XSS -->
-            <form  action="<?php echo htmlentities($_SERVER['PHP_SELF']) ?>" method="post" enctype="multipart/form-data" >
+           
+            <form  action="<?php echo $_SERVER['PHP_SELF'] ?>" method="post" enctype="multipart/form-data" >
                 <p>
                     <label for="name">Nom</label>
-                    <input required class="input-medium" value="<?php echo (isset($_POST['name']) && secur($_POST['name']))? $_POST['name'] : ''; ?>"  name="name" id="name" type="text" >
+                    <input  required class="input-medium" value=""  name="name" id="name" type="text" >
                 </p>
                 <p>
                     <label for="avatar">Avatar</label>
@@ -50,7 +50,6 @@ if (!empty($_POST)) {
                         Bloqué l'accès à l'admin
                     </label>
                 </p>
-                <input type="hidden" name="nonce" value="<?php echo md5('SalteDateLimited' . date('Y-m-d h:i:00')); ?>" />
                 <p><input class="btn" type="submit" value="ok" name="ok" /></p>
             </form>
         </div>
