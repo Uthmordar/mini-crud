@@ -290,7 +290,7 @@ function upload($file) {
 }
 
 /*
- *  --- getUrl($file), attention 
+ *  --- getUrl($file)
  * 
  */
 
