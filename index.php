@@ -3,14 +3,13 @@
 require_once 'bootstrap.php';
 // -------- fin bootstrap
 
-$users=selec(array('table'=>'user', 'status'=>'1'));  // objet PDOStatement  ->fetch() une ligne de la table
 
 if(isset($_GET['user_id']) && isset($_GET['action'])){
     $userId= (int) $_GET['user_id'];
     delete($userId);
-    header('Location: index.php');
-    exit();
 }
+
+$users=selec(array('table'=>'user', 'status'=>'1'));
 
 ?>
 <!DOCTYPE html>
@@ -54,7 +53,7 @@ if(isset($_GET['user_id']) && isset($_GET['action'])){
                                     </a>
                                     <ul class="dropdown-menu">
                                         <li><a href="<?php echo getConfig('url') . 'update.php?user_id=' . $user['user_id']; ?>">update</a></li>
-                                        <li><a href="<?php echo getConfig('url') . 'index.php?action=delete&user_id=' . $user['user_id']; ?>&action=delete">delete</a></li>
+                                        <li><a href="<?php echo getConfig('url') . 'index.php?action=delete&user_id=' . $user['user_id']; ?>">delete</a></li>
                                     </ul>
                                 </div></td>
                         </tr>

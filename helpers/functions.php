@@ -118,43 +118,40 @@ function create() {
 
 // function update
 function update() {
-    global $pdo, $errors;
-
+   global $pdo, $errors;
     $name = trim($_POST['name']); // plus d'espace avant et après
     if (empty($name)) {
         $errors[] = "Le nom est obligatoire";
-        return false;
+        return false;  // sort de la fonction
     }
 
     if (!secur($name)) {
         $errors[] = "Pb dans le nom, ne pas afficher cette erreur sécu";
         return false;
     }
-
-    $status = (secur($_POST['status'])) ? $_POST['status'] : '0';
-    $avatar = 'no';
+   
+    $avatar='no';
     $userId = (int) $_POST['user_id'];
-
-    $sql = "UPDATE `user` 
-            SET name=:name, avatar=:avatar, status=:status  WHERE user_id=:user_id ;";
-
-    $stmt = $pdo->prepare($sql);
-
-    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-    $stmt->bindValue(':name', $name, PDO::PARAM_STR);
-    $stmt->bindValue(':avatar', $avatar, PDO::PARAM_STR);
-    $stmt->bindValue(':status', $status, PDO::PARAM_STR);
-
-    return $stmt->execute(); // true or false
+    $status = (secur($_POST['status'])) ? $_POST['status'] : '0';
+    
+   
+   $sql = "UPDATE `user` SET name=:name, avatar=:avatar, status=:status WHERE user_id=:user_id ;"; // moule de la requête
+   $stmt = $pdo->prepare($sql); // préparée 
+   
+   $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+   $stmt->bindValue(':name', $name, PDO::PARAM_STR);
+   $stmt->bindValue(':avatar', $avatar, PDO::PARAM_STR);
+   $stmt->bindValue(':status', $status, PDO::PARAM_STR);
+   
+   return $stmt->execute(); // true or false
+   
 }
 
 function delete($userId) {
-    global $pdo, $errors;
-
+    global $pdo;
     $sql = "DELETE FROM `user` WHERE user_id=:user_id ;";
     $stmt = $pdo->prepare($sql);
     $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-
     return $stmt->execute(); // true or false
 }
 

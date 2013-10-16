@@ -3,24 +3,24 @@
 require_once 'bootstrap.php';
 // -------- fin bootstrap
 
-
-if(!empty($_POST)){
-    if(update()){
+if (!empty($_POST)) {
+    if (update()) {
         header('Location: index.php');
-        exit();
+        exit(); // sinon le script continu jusqu'en bas de la page
     }
 }
 
-if(isset($_GET['user_id']))
-    $userId = (int) $_GET['user_id']; // 0 si pourri typé int
 
+if(isset($_GET['user_id']))
+    $userId = (int) $_GET['user_id']; // une valeur numérique soit 0
 
 if(isset($_POST['user_id']))
-    $userId = (int) $_POST['user_id']; // 0 si pourri typé int
+    $userId = (int) $_POST['user_id']; // une valeur numérique soit 0
 
-$user=selec(array('table'=>'user', 'user_id'=>$userId));
+$user = selec( array('table'=>'user', 'user_id' => $userId));  // PDOStatement
 
-$u=$user->fetch(); // affiche une ligne
+$u = $user->fetch(); // une ligne de résultat 
+
 
 ?>
 
@@ -46,7 +46,7 @@ $u=$user->fetch(); // affiche une ligne
                 <input type="hidden" name="user_id" value="<?php echo $u['user_id']; ?>" >
                 <p>
                     <label for="name">Nom</label>
-                    <input required class="input-medium" value="<?php echo $u['name']; ?>"  name="name" id="name" type="text" >
+                    <input  class="input-medium" value="<?php echo $u['name']; ?>"  name="name" id="name" type="text" >
                 </p>
                 <?php if ($u['avatar'] != 'no'): ?>
                     <p>

@@ -1,6 +1,8 @@
 <?php
 //-------- bootstrap 
 require_once 'bootstrap.php';
+
+//   XSS attaque    /%22%3E%3Cscript%3Ealert%28%27xss%27%29%3C/script%3E%3Cfoo%22
 // -------- fin bootstrap
 
 if (!empty($_POST)) {
