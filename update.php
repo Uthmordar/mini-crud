@@ -42,7 +42,7 @@ $u = $user->fetch(); // une ligne de résultat
                 <?php var_dump($errors); ?>
             <?php endif; ?> 
             <h1><a href="<?php echo getConfig('url'); ?>" ><?php echo getConfig('name') ?></a></h1>
-            <form  action="<?php echo $_SERVER['PHP_SELF'] ?>" method="post" enctype="multipart/form-data" >
+            <form  action="<?php echo htmlentities($_SERVER['PHP_SELF']) ?>" method="post" enctype="multipart/form-data" >
                 <input type="hidden" name="user_id" value="<?php echo $u['user_id']; ?>" >
                 <p>
                     <label for="name">Nom</label>

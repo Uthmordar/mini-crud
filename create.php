@@ -2,6 +2,7 @@
 //-------- bootstrap 
 require_once 'bootstrap.php';
 
+
 //   XSS attaque    /%22%3E%3Cscript%3Ealert%28%27xss%27%29%3C/script%3E%3Cfoo%22
 // -------- fin bootstrap
 
@@ -32,7 +33,7 @@ if (!empty($_POST)) {
 
             <h1><a href="<?php echo getConfig('url'); ?>" ><?php echo getConfig('name') ?></a></h1>
            
-            <form  action="<?php echo $_SERVER['PHP_SELF'] ?>" method="post" enctype="multipart/form-data" >
+            <form  action="<?php echo htmlentities($_SERVER['PHP_SELF']);  ?>" method="post" enctype="multipart/form-data" >
                 <p>
                     <label for="name">Nom</label>
                     <input  required class="input-medium" value=""  name="name" id="name" type="text" >
