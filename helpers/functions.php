@@ -5,20 +5,17 @@
  */
 
 $config = require_once PATH_CONFIG . 'config.php';
-
 $database = require_once PATH_CONFIG . 'database.php';
 
 function getConfig($name) {
     global $config;
     if (isset($config[$name])) {
         return $config[$name];
-    }else{
-        return '';
     }
 }
 
 /*
- *  @connexion à la base de données PDO php.net
+ *  @connexion à la base de données PDO 
  */
 
 try {
@@ -39,172 +36,216 @@ $errors = array();
 /**
  *  version ***
  * 
+ * @global type $pdo
+ * @param type $args 
  */
-function selec($args) {
-    global $pdo;
+ 
+function selec(){
+	global $pdo;
+	$stmt=$pdo->prepare("
+			SELECT *
+			FROM `user`
+			"
+	);
+	
+	$stmt->execute();
+	return $stmt;
 
-    // table required
-    if (isset($args['table'])) {
-        $table = $args['table'];
-    } else {
-        die('API erreur définir un nom de table');
-    }
-
-    $sql = "SELECT * FROM `$table` WHERE 1=1 ";
-
-    // status ?
-    if (isset($args['status'])) {
-        $status = $args['status'];
-        $sql .= " AND status= :status "; // place holder 
-    }
-    // order by
-    if (isset($args['order_desc'])) {
-        $sql .= " ORDER BY {$args['order_desc']} DESC"; // place holder 
-    }
-    // order by
-    if (isset($args['order_asc'])) {
-        $sql .= " ORDER BY {$args['order_asc']} ASC"; // place holder 
-    }
-
-    // user_id ?
-    if (isset($args['user_id'])) {
-        $userId = (int) $args['user_id'];
-        $sql .= " AND user_id= :user_id";
-    }
-
-    $sql.=";";
-
-    // SELECT * FROM FROM user WHERE 1=1 AND status= :status AND user_id= :status;
-    $stmt = $pdo->prepare($sql); // requête préparée moule retourne un objet de type PDOStatement
-
-    if (isset($args['user_id'])) {
-        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-    }
-
-    if (isset($args['status'])) {
-        $stmt->bindValue(':status', $status, PDO::PARAM_STR);
-    }
-
-    $stmt->execute();  // on execute
-    return $stmt;
 }
 
-$errors = array();
+function selecNew($args){
+    global $pdo;
+	
+	$execute=array();
+	$table='`user`';
+	
+	if(isset($args['table'])){
+		$table=$args['table'];
+	}
+	
+	$sql="SELECT * FROM $table WHERE 1=1 ";
+	
+	// selec(array('table'=>'user', 'where'=> array('status'=>'1', user_id='2'), 'order'=>array('type'=>'ASC', 'column'=>array('dateTime', 'name'))); 
+	if(isset($args['where'])){
+		foreach($args['where'] as $k=>$v){
+			$sql .= " AND $k=?";
+			
+			$execute[]=$v;
+		}
+	}
+	//... WHERE 1=1 AND status=? AND user_id=?
+	
+	// implode(', ', $array)
+	
+	if(isset($args['order'])){
+		$sql.=" ORDER BY ";
+		
+		if(isset($args['order']['column'])){
+			$column=implode(', ', $args['order']['column']);
+			$sql .= $column;
+		}
+		
+		if($args['order']['type']=='ASC' || !isset($args['order']['type'])){
+			$sql .= " ASC";
+		}else if($args['order']['type']=='DESC'){
+			$sql .= " DESC";
+		}else{
+			return false;
+		}
+	}
+	
+	$stmt = $pdo->prepare($sql);
+	
+	// bindValues
+	$i=0;
+	foreach($execute as $v){
+		$i++;
+		$stmt->bindValue($i, $v, PDO::PARAM_INT);
+	}
+	
+	$stmt->execute();
+	
+	return $stmt;
+}
+
+function selecTarget($table, $argsWhere, $valueWhere){
+	global $pdo;
+	
+	$stmt = $pdo->prepare("
+				SELECT *
+				FROM `".$table."`
+				WHERE ".$argsWhere."=:valueWhere
+			"
+		);
+		
+	$stmt->bindValue(':valueWhere', $valueWhere, PDO::PARAM_STR);
+	
+	$stmt->execute();
+	
+	return $stmt;
+
+}
 
 /**
  * ----- C(R)UD
  */
 function create() {
-    global $pdo, $errors;
-    $avatar = 'no';
-    
-    $name = trim($_POST['name']); // plus d'espace avant et après
-    if (empty($name)) {
-        $errors[] = "Le nom est obligatoire";
-        return false;
-    }
-
-    if (!secur($name)) {
-        $errors[] = "Pb dans le nom, ne pas afficher cette erreur sécu";
-        return false;
-    }
-
-    if (is_uploaded_file($_FILES['avatar']['tmp_name'])) {
-        $avatar = upload($_FILES['avatar']);
-
-        if (!$avatar) {
-            return false;
-        }
-    }
-
-    //INSERT INTO user (name, avatar) VALUES ('Antoine', 'no')
-    $sql = "
-        INSERT 
-        INTO `user` (name, avatar, status, date_crea) 
-        VALUES (:name, :avatar, :status, NOW());";
-
-    $stmt = $pdo->prepare($sql);
-    $status = (secur($_POST['status'])) ? $_POST['status'] : '0';
-
-
-    /* ---------- On a passé les tests on continue  --- */
-
-    $stmt->bindValue(':name', $name, PDO::PARAM_STR);
-    $stmt->bindValue(':avatar', $avatar, PDO::PARAM_STR);
-    $stmt->bindValue(':status', $status, PDO::PARAM_STR);
-    return $stmt->execute(); // true or false
+	global $pdo;
+	
+	$sql="INSERT INTO `user` (name, status, avatar, dateTime) VALUES (:name, :status, :avatar, NOW());";
+	
+	$stmt= $pdo->prepare($sql);
+	if(secur($_POST['nom']) && secur($_POST['radio1'])){
+		$name=$_POST['nom'];
+		$status=$_POST['radio1'];
+		if(!empty($_FILES['avatar']) && $_FILES['avatar']['size']<=1048576 && $_FILES['avatar']['error']==0){
+			$avatar=upload($_FILES['avatar']);
+		}else{
+			$avatar='no';
+		}
+	
+		$stmt->bindValue(':name', trim($name), PDO::PARAM_STR);
+		$stmt->bindValue(':status', $status, PDO::PARAM_STR);
+		$stmt->bindValue(':avatar', $avatar, PDO::PARAM_STR);
+		
+		return $stmt->execute();
+    }else{
+		return false;
+	}
 }
 
-// function update
-function update() {
-    global $pdo, $errors;
-    $name = trim($_POST['name']); // plus d'espace avant et après
-    if (empty($name)) {
-        $errors[] = "Le nom est obligatoire";
-        return false;  // sort de la fonction
-    }
+/*function update() {
 
-    if (!secur($name)) {
-        $errors[] = "Pb dans le nom, ne pas afficher cette erreur sécu";
-        return false;
-    }
+	global $pdo;
+	
+	if(!empty($_FILES['avatar']['tmp_name']) && $_FILES['avatar']['error']==0 && $_FILES['avatar']['size']<=1048576){
+	
+		$sql="UPDATE `user` SET `name`=:name, `avatar`=:avatar, `status`= :status WHERE `user_id`=:user ;";
+		$avatar=upload($_FILES['avatar']);
+		$stmt= $pdo->prepare($sql);
+		$stmt->bindValue(':avatar', $avatar, PDO::PARAM_STR);
+		
+	}else{
+		$sql="UPDATE `user` SET `name`=:name, `status`= :status WHERE `user_id`=:user ;";
+		$stmt= $pdo->prepare($sql);		
+	}
+		
+	if(secur($_POST['nom']) && secur($_POST['radio1'])){
+		$user=$_GET['user'];
+		$name=$_POST['nom'];
+		$status=$_POST['radio1'];
+	
 
-    $avatar = 'no';
-    $userId = (int) $_POST['user_id'];
-    $status = (secur($_POST['status'])) ? $_POST['status'] : '0';
+		$stmt->bindValue(':name', $name, PDO::PARAM_STR);
+		$stmt->bindValue(':status', $status, PDO::PARAM_STR);
+		$stmt->bindValue(':user', $user, PDO::PARAM_STR);
+		
+		return $stmt->execute();
+	}
+}*/
 
-    // upload d'image
-    $userId = (int) $_POST['user_id'];
-    $user = selec(array('table' => 'user', 'user_id' => $userId));
-    $user = $user->fetch();
-    
-    if (is_uploaded_file($_FILES['avatar']['tmp_name'])) {
-        // upload image
-        $avatar = upload($_FILES['avatar']);
-        if (!$avatar) {
-            return false;
-        }
-        
-        if ($user['avatar'] != 'no') {
-            // supprime le fichier si il existe
-            if (file_exists($user['avatar']))
-                unlink($user['avatar']);
-        }
-    }else{
-        $avatar=$user['avatar'];
-    }
+function update2(){
 
-    $sql = "UPDATE `user` SET name=:name, avatar=:avatar, status=:status, date_crea=NOW() WHERE user_id=:user_id ;"; // moule de la requête
-    $stmt = $pdo->prepare($sql); // préparée 
+	global $pdo;
+	
+	$sql="UPDATE `user` SET `name`=:name, `avatar`=:avatar, `status`= :status, `dateTime`=NOW() WHERE `user_id`=:user ;";
+		
+	$stmt= $pdo->prepare($sql);	
+		
+	if(secur($_POST['nom']) && secur($_POST['radio1'])){
+		$user=$_POST['user_id'];
+		$name=$_POST['nom'];
+		$status=$_POST['radio1'];
+		
+		$requete=selecNew(array('table'=>'user', 'where'=> array('user_id'=>$user)));
+		
+		while($user2= $requete->fetch()){
+			$avatar=$user2['avatar'];
+		}
+		
+		if(!empty($_FILES['avatar']['tmp_name']) && $_FILES['avatar']['error']==0 && $_FILES['avatar']['size']<=1048576){
+			unlink($avatar);
+			$avatar=upload($_FILES['avatar']);
+		}
+	
 
-    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-    $stmt->bindValue(':name', $name, PDO::PARAM_STR);
-    $stmt->bindValue(':avatar', $avatar, PDO::PARAM_STR);
-    $stmt->bindValue(':status', $status, PDO::PARAM_STR);
-
-    return $stmt->execute(); // true or false
+		$stmt->bindValue(':name', $name, PDO::PARAM_STR);
+		$stmt->bindValue(':status', $status, PDO::PARAM_STR);
+		$stmt->bindValue(':avatar', $avatar, PDO::PARAM_STR);
+		$stmt->bindValue(':user', $user, PDO::PARAM_STR);
+		
+		return $stmt->execute();
+	}else{
+		return false;
+	}
 }
 
 function delete($userId) {
     global $pdo;
-    $sql = "DELETE FROM `user` WHERE user_id=:user_id ;";
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-    return $stmt->execute(); // true or false
+	
+	$sql="DELETE FROM `user` WHERE user_id=".$userId.";";
+	
+	$stmt= $pdo->prepare($sql);
+
+	$stmt->execute();
+		
+	return $stmt;
 }
 
 /*
- * ----- secu
+ * ----- securité
  */
 
 function secur($post) {
-    // j'ai mis ! pour que la fonction retourne soit true soit false et pas 0 ou 1 !0 => true et !1 => false
-    // $$$$ @ <scrip>alert('xss')</script>
-    if (!preg_match('/^[\w àáâãäåçèéêëìíîïðòóôõöùúûüýÿ-]+$/', $post)) {
-        return false;
-    } else {
-        return true;
-    }
+    $pattern="/^[\w àáâãäåçèéêëìíîïðòóôõöùúûüýÿ-]+$/";
+	
+	$check=preg_match($pattern, $post);
+	
+	if($check==0 || $check==FALSE){
+		return FALSE;
+	}else{
+		return TRUE;
+	}
 }
 
 /*
@@ -212,90 +253,122 @@ function secur($post) {
  */
 
 function upload($file) {
+	
+	$file=$file['tmp_name'];
 
-    global $errors;
-
-    $extensions = array('jpg', 'jpeg', 'gif', 'png');
-    $types = array('image/png', 'image/jpg', 'image/gif', 'image/jpeg');
-
-    // on calcule les dimensions de l'image
-    $size = getimagesize($file['tmp_name']);
-    list ($x, $y) = $size;
-
-    // supérieur à 1 Mo 1024*1024
-    if ($file['size'] > 1048576) {
-        $errors[] = 'image > à 1mo (taille: ' . $file['size'] . ')';
-        return false;
-    }
-    // vérification du type de l'image...
-    if (!in_array($size['mime'], $types)) {
-        $errors[] = 'type d\'image inconnu';
-        return false;
-    }
-
-
-    // on dépasse le nombre d'image sur le serveur...
-    if (count(scandir(PATH_AVATARS)) > 2000) {
-        $errors[] = 'Plus de place dans le dossier';
-        return false;
-    }
-
-    // Ici tout est ok on continue
-
-    $ext = substr(strrchr($file['name'], '.'), 1);
-
-    // uniqid génère un identifiant unique true ajoute de l'entropie et rand() est un prefix aléatoire, md5 crypte le tout en hexa sur 32 caractères.
-    $name = md5(uniqid(rand(), true));
-
-    // onc crée l'avatar
-    // si largeur > hauteur  landscape
-    // landscape reduction en pourcentage
-
-    $reduc = ((150 * 100) / $x); // pourcentage X100
-    $thumbX = 150;
-    $thumbY = ($y * $reduc) / 100; // attention pourcentage X100
-    // création de l'image vide
-    $thumb = imagecreatetruecolor($thumbX, $thumbY);
-
-    $thumbPath = PATH_AVATARS . $name . '.' . $ext;
-    $pathImage = $file['tmp_name'];
-
-    // png ?
-    if ($size['mime'] == 'image/png') {
-        $img = imagecreatefrompng($pathImage);
-        imagecopyresampled($thumb, $img, 0, 0, 0, 0, $thumbX, $thumbY, $x, $y);
-        imagepng($thumb, $thumbPath); // save tumbnail
-    }
-
-    // jpg ?
-    if ($size['mime'] == 'image/jpg' || $size['mime'] == 'image/jpeg') {
-        $img = imagecreatefromjpeg($pathImage);
-        imagecopyresampled($thumb, $img, 0, 0, 0, 0, $thumbX, $thumbY, $x, $y);
-        imagejpeg($thumb, $thumbPath); // save tumbnail
-    }
-
-    // gif ?
-    if ($size['mime'] == 'image/gif') {
-        $img = imagecreatefromgif($pathImage);
-        imagecopyresampled($thumb, $img, 0, 0, 0, 0, $thumbX, $thumbY, $x, $y);
-        imagegif($thumb, $thumbPath); // save tumbnail
-    }
-
-    // libère la mémoire associée à l'image
-    //chmod($thumbPath, 0777);  // assigner les droits de lecture etc...Pour ubuntu 
-    imagedestroy($thumb);
-    imagedestroy($img);
-
-    return $thumbPath;
-}
-
-/*
- *  --- getUrl($file)
- * 
- */
-
-function getUrl($file=''){
-    return getConfig('url').$file;
+	//$ext= array('.jpg', '.jpeg', '.png', '.gif');
+	$contentType=array('image/jpg', 'image/jpeg', 'image/png', 'image/gif');
+	
+	// On parse $fil['name'], on repére '.' et on retourne ce qui se trouve après si 1 ou aprés avec '.' inclus si 0.
+	// substr(strrchr($file['name'], '.'), 1);
+	
+	$percent=20/100;
+	$size=getimagesize($file);
+	$x=$size[0];
+	$y=$size[1];
+	$thumbX=80;
+	$thumbY=80;
+	
+	$MIME=$size['mime'];
+	
+	if(!in_array($MIME, $contentType)){
+		return false;
+	}
+	
+	if(count(scandir(PATH_IMAGE))>200){
+		return false;
+	}
+	
+	$name=md5(uniqid(rand(), true));
+	//$thumbX=$x*$percent;
+	//$thumbY=$y*$percent;
+	
+	
+	$thumb = imagecreatetruecolor($thumbX, $thumbY);
+	
+	/*$img=imagecreatefrompng($file);
+	
+	$copy=imagecopyresampled($thumb, $img, 0, 0, 0, 0, $thumbX, $thumbY, $x, $y);*/
+	
+	
+	if($MIME==$contentType[0]){
+	
+		$img=imagecreatefromjpg($file);
+		$copy=imagecopyresampled($thumb, $img, 0, 0, 0, 0, $thumbX, $thumbY, $x, $y);
+	
+		header('Content-Type : '.$contentType[0]);
+		
+		$ext=substr(strrchr($contentType[0], '/'), 1);
+		
+		imagejpg($thumb);
+		imagejpg($thumb, PATH_IMAGE.$name.'.'.$ext);
+		
+		imagedestroy($img);
+		imagedestroy($thumb);
+	
+		return PATH_IMAGE.$name.'.'.$ext;
+		
+	}else if($MIME==$contentType[1]){
+	
+		$img=imagecreatefromjpeg($file);
+		$copy=imagecopyresampled($thumb, $img, 0, 0, 0, 0, $thumbX, $thumbY, $x, $y);
+	
+		header('Content-Type : '.$contentType[1]);
+		
+		$ext=substr(strrchr($contentType[1], '/'), 1);
+		
+		imagejpeg($thumb);
+		imagejpeg($thumb, PATH_IMAGE.$name.'.'.$ext);
+		
+		imagedestroy($img);
+		imagedestroy($thumb);
+	
+		return PATH_IMAGE.$name.'.'.$ext;
+		
+	}else if($MIME==$contentType[2]){
+	
+		$img=imagecreatefrompng($file);
+		$copy=imagecopyresampled($thumb, $img, 0, 0, 0, 0, $thumbX, $thumbY, $x, $y);
+	
+		header('Content-Type : '.$contentType[2]);
+		
+		$ext=substr(strrchr($contentType[2], '/'), 1);
+		
+		imagepng($thumb);
+		imagepng($thumb, PATH_IMAGE.$name.'.'.$ext);
+		
+		imagedestroy($img);
+		imagedestroy($thumb);
+	
+		return PATH_IMAGE.$name.'.'.$ext;
+		
+	}else if($MIME==$contentType[3]){
+	
+		$img=imagecreatefromgif($file);
+		$copy=imagecopyresampled($thumb, $img, 0, 0, 0, 0, $thumbX, $thumbY, $x, $y);
+	
+		header('Content-Type : '.$contentType[3]);
+		
+		$ext=substr(strrchr($contentType[3], '/'), 1);
+		
+		imagegif($thumb);
+		imagegif($thumb, PATH_IMAGE.$name.'.'.$ext);
+		
+		imagedestroy($img);
+		imagedestroy($thumb);
+	
+		return PATH_IMAGE.$name.'.'.$ext;
+	}
+	
+	/*header('Content-Type : image/png');
+	
+	imagepng($thumb);
+	imagepng($thumb, PATH_IMAGE.$name.'.png');
+	
+	imagedestroy($img);
+	imagedestroy($thumb);
+	
+	return PATH_IMAGE.$name.'.png';*/
 }
 
 ?>

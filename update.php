@@ -3,25 +3,21 @@
 require_once 'bootstrap.php';
 // -------- fin bootstrap
 
-if (!empty($_POST)) {
-    if (update()) {
-        header('Location: index.php');
-        exit(); // sinon le script continu jusqu'en bas de la page
-    }
+$tokenErrorUpdate = 0;
+
+if(!empty($_POST)){
+	if(update2()){
+		header('Location:index.php');
+		exit();
+	}else{
+		$tokenErrorUpdate = 1;
+	}
+}else{
+	if(!isset($_GET['user'])){
+		echo '<p>Not allowed.</p>';
+		die();
+	}
 }
-
-
-if(isset($_GET['user_id']))
-    $userId = (int) $_GET['user_id']; // une valeur numérique soit 0
-
-if(isset($_POST['user_id']))
-    $userId = (int) $_POST['user_id']; // une valeur numérique soit 0
-
-$user = selec( array('table'=>'user', 'user_id' => $userId));  // PDOStatement
-
-$u = $user->fetch(); // une ligne de résultat 
-
-
 ?>
 
 
@@ -37,39 +33,36 @@ $u = $user->fetch(); // une ligne de résultat
     </head>
     <body>
         <div class="container">
-            <?php if (!empty($errors)): ?>
-                <h1>Erreurs</h1>
-                <?php var_dump($errors); ?>
-            <?php endif; ?> 
             <h1><a href="<?php echo getConfig('url'); ?>" ><?php echo getConfig('name') ?></a></h1>
-            <form  action="<?php echo htmlentities($_SERVER['PHP_SELF']) ?>" method="post" enctype="multipart/form-data" >
-                <input type="hidden" name="user_id" value="<?php echo $u['user_id']; ?>" >
-                <p>
-                    <label for="name">Nom</label>
-                    <input  class="input-medium" value="<?php echo $u['name']; ?>"  name="name" id="name" type="text" >
-                </p>
-                <?php if ($u['avatar'] != 'no'): ?>
-                    <p>
-                        <img src="<?php echo $u['avatar']; ?>" />
-                    </p>
-                <?php endif; ?>
-                <p>
-                    <label for="avatar">Avatar (modifier/ajouter)</label>
-                    <input  id="avatar" type="file" name="avatar" >
-                </p>
-                <p>
-                    <label class="radio">
-                        <input type="radio" name="status" id="status1" value="1" <?php echo ($u['status']) ? 'checked' : ''; ?>>
-                        accès à l'admin
-                    </label>
-                </p>
-                <p><label class="radio">
-                        <input type="radio" name="status" id="status2" value="0" <?php echo ($u['status']) ? '' : 'checked'; ?> >
-                        Bloqué l'accès à l'admin
-                    </label>
-                </p>
-                <p><input class="btn" type="submit" value="ok" name="ok" /></p>
-            </form>
+			
+			<?php $requete=selecTarget('user', 'user_id', $_GET['user']); while($user= $requete->fetch()) : ?>
+			
+			<form method='post' enctype='multipart/form-data' action="<?php echo htmlentities($_SERVER['PHP_SELF']) ?>">
+				<?php //if($tokenErrorUpdate==1){	echo '<p>Données fournies incorrectes.</p>'; }; ?>
+				<!-- pour récupérer le user_id on le place dans un champ caché plutôt que d'utiliser un GET pour sécuriser -->
+				<input type="hidden" name="user_id" value="<?php echo $user['user_id']; ?>" />
+				<label for='nom'>Nom</label>
+				<input type='text' name='nom' value='<?php echo $user['name']; ?>' required/>
+			
+				<label for='avatar'>Avatar</label>
+				<p><?php if($user['avatar']!='no'){ echo '<img src='.$user['avatar'].' alt=""/>'; }else{ echo $user['avatar'];} ?></p>
+				<?php $_POST['avatar']=$user['avatar']; ?>
+				<input type='file' name='avatar' size='20' value='change'/>
+				<input type="hidden" name="MAX_FILE_SIZE" value="1048576" />
+				<br/>
+				
+				<?php if($user['status']==1) : ?>
+				<input type='radio' name='radio1' value='1' id='radio1' checked><label for='radio1'>accès à l'admin</label>
+				<input type='radio' name='radio1' value='0' id='radio2'><label for='radio2'>bloquer l'accès à l'admin</label>
+				<?php else : ?>
+				<input type='radio' name='radio1' value='1' id='radio1'><label for='radio1'>accès à l'admin</label>
+				<input type='radio' name='radio1' value='0' id='radio2' checked><label for='radio2'>bloquer l'accès à l'admin</label>
+				<?php endif; ?>
+				
+				<input type='submit' name='formVal' id='formVal' value='ok'/>
+			
+			</form>
+			<?php endwhile; ?>
         </div>
     </body>
 </html>
